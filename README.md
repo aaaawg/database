@@ -48,3 +48,89 @@
     **기본키**: (아이디, ISBN, 구분)  
     **외래키**: 아이디, ISBN
 ***
+## 4. 테이블 생성
+데이터베이스 생성
+```
+CREATE DATABASE ebook;
+```
+
+고객 테이블 생성
+```
+CREATE TABLE user (
+    id VARCHAR(20) NOT NULL,
+    name VARCHAR(5) NOT NULL,
+    age INT NOT NULL,
+    point INT DEFAULT 0,
+    PRIMARY KEY(id)
+);
+```
+
+도서 테이블 생성
+```
+CREATE TABLE book (
+    isbn INT NOT NULL,
+    title VARCHAR(20) NOT NULL,
+    publisher VARCHAR(10) NOT NULL,
+    publication_date DATE NOT NULL,
+    price INT NOT NULL,
+    discount INT DEFAULT 0,
+    PRIMARY KEY(isbn)
+);
+```
+
+도서_구분 테이블 생성
+```
+CREATE TABLE book_category (
+    isbn INT NOT NULL,
+    category char(2) NOT NULL,
+    PRIMARY KEY(isbn, category),
+    FOREIGN KEY(isbn) REFERENCES book(isbn)
+    ON DELETE CASCADE
+);
+```
+
+도서_저자 테이블 생성
+```
+CREATE TABLE book_author (
+    isbn INT NOT NULL,
+    author varchar(5) NOT NULL,
+    PRIMARY KEY(isbn, author),
+    FOREIGN KEY(isbn) REFERENCES book(isbn)
+    ON DELETE CASCADE
+);
+```
+
+주문 테이블 생성
+```
+CREATE TABLE orders (
+    user_id VARCHAR(20) NOT NULL,
+    book_isbn INT NOT NULL,
+    book_category char(2) NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    use_point INT DEFAULT 0,
+    payment INT NOT NULL,
+    PRIMARY KEY(user_id, book_isbn, book_category),
+    FOREIGN KEY(user_id) REFERENCES user(id)
+    ON DELETE CASCADE,
+    FOREIGN KEY(book_isbn) REFERENCES book(isbn)
+    ON DELETE CASCADE
+);
+```
+
+리뷰 테이블 생성
+```
+CREATE TABLE review (
+    user_id VARCHAR(20) NOT NULL,
+    book_isbn INT NOT NULL,
+    rating DECIMAL(2, 1) NOT NULL,
+    reg_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    content VARCHAR(100) NOT NULL,
+    PRIMARY KEY(user_id, book_isbn),
+    CONSTRAINT CHK_R CHECK (rating >= 0 AND rating <= 5),
+    CONSTRAINT CHK_C CHECK (CHAR_LENGTH(content) >= 30),
+    FOREIGN KEY(user_id) REFERENCES user(id)
+    ON DELETE CASCADE,
+    FOREIGN KEY(book_isbn) REFERENCES book(isbn)
+    ON DELETE CASCADE
+);
+```
