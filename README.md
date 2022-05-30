@@ -63,13 +63,14 @@
 ## 2.1. 릴레이션
 + 회원(<ins>아이디</ins>, 비밀번호, 이름, 나이, 포인트, 종류, 주문일) 
 + 관리자(이름, <ins>사원번호</ins>, 비밀번호)
-+ 도서(<ins>ISBN</ins>, 도서명, 출판사, 출간일, 가격, 할인율)
-+ 도서_구분(<ins>ISBN</ins>, <ins>구분</ins>)
++ 도서(<ins>ISBN</ins>, 도서명, 출판사, 출간일, 가격)
++ 도서_할인율(<ins>ISBN</ins>, <ins>구분</ins>, 할인율)
 + 도서_저자(<ins>ISBN</ins>, <ins>저자</ins>)
 + 주문(<ins>아이디</ins>, <ins>ISBN</ins>, <ins>구분</ins>, 주문일, 사용포인트, 결제가격)
 + 리뷰(<ins>아이디</ins>, <ins>ISBN</ins>, 점수, 내용, 작성일)
 + 오디오북(<ins>ISBN</ins>, <ins>회차</ins>, 낭독자, 재생시간)
-+ 문의글(<ins>글번호</ins>, 아이디, 제목, 내용, 작성일, 답변_내용, 답변_작성일, 사원번호)
++ 이용권(<ins>종류</ins>, 가격)
++ 문의글(<ins>글번호</ins>, 아이디, 제목, 내용, 작성일, 답변_내용, 답변_작성일, 답변_사원번호)
 
 ## 2.2. 테이블 명세서
 테이블 이름: 회원
@@ -139,6 +140,12 @@ ISBN | INT | N | PK, FK
 낭독자 | VARCHAR(10) | N 
 재생시간 | TIME | N 
 
+테이블 이름: 이용권
+필드 이름 | 데이터 타입 | 널 허용 여부 | 키 | 기본값 | 제약조건
+:--: | :--: | :--: | :--: | :--: | :--: 
+종류 | INT | N | PK
+가격 | INT | N | | | 0 이상 
+
 테이블 이름: 문의글
 필드 이름 | 데이터 타입 | 널 허용 여부 | 키 | 기본값 | 제약조건
 :--: | :--: | :--: | :--: | :--: | :--: 
@@ -149,7 +156,7 @@ ISBN | INT | N | PK, FK
 작성일 | DATETIME | N | | CURRENT_TIMESTAMP
 답변_내용 | VARCHAR(500) | Y 
 답변_작성일 | DATETIME | Y 
-사원번호 | INT | Y | FK
+답변_사원번호 | INT | Y | FK
 
 ***
 # 3. 테이블 생성
@@ -199,9 +206,10 @@ CREATE TABLE 도서 (
 
 도서_구분 테이블 생성
 ```
-CREATE TABLE 도서_구분 (
+CREATE TABLE 도서_할인율 (
 	ISBN INT NOT NULL,
-	구분 CHAR(2) NOT NULL,
+	구분 CHAR(2) NOT NULL, 
+	할인율 INT NOT NULL DEFAULT 0,
 	PRIMARY KEY(ISBN, 구분),
     	FOREIGN KEY(ISBN) REFERENCES 도서(ISBN)
     	ON DELETE CASCADE
@@ -214,8 +222,8 @@ CREATE TABLE 도서_저자 (
 	ISBN INT NOT NULL,
 	저자 VARCHAR(10) NOT NULL,
 	PRIMARY KEY(ISBN, 저자),
-  FOREIGN KEY(ISBN) REFERENCES 도서(ISBN)
-  ON DELETE CASCADE
+	FOREIGN KEY(ISBN) REFERENCES 도서(ISBN)
+	ON DELETE CASCADE
 );
 ```
 
@@ -269,6 +277,16 @@ CREATE TABLE 오디오북 (
 );
 ```
 
+이용권 테이블 생성
+```
+CREATE TABLE 이용권 (
+	종류 INT NOT NULL, 
+	가격 INT NOT NULL,
+	PRIMARY KEY(종류),
+	CHECK (가격 >= 0)
+);
+```
+
 문의글 테이블 생성
 ```
 CREATE TABLE 문의글 (
@@ -279,7 +297,7 @@ CREATE TABLE 문의글 (
 	작성일 DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	답변_내용 VARCHAR(500),
 	답변_작성일 DATETIME,
-	사원번호 INT,
+	답변_사원번호 INT,
 	PRIMARY KEY(글번호),
 	FOREIGN KEY(아이디) REFERENCES 회원(아이디)
 	ON DELETE CASCADE,
@@ -287,3 +305,19 @@ CREATE TABLE 문의글 (
 	ON DELETE SET NULL	
 );
 ```
+***
+# 4. 정규화
+## 4.1. 도서 릴레이션
+도서 릴레이션의 구분, 저자, 할인율 속성은 다중 값 속성이다.    
+구분, 저자, 할인율 속성이 여러 개의 값을 가지고 있으므로 제1정규형을 만족하지 못한다.
+<ins> ISBN </ins> | 구분 | 도서명 | 출판사 | 출간일 | 저자 | 가격 | 할인율
+:--: | :--: | :--: | :--: | :--: | :--: | :--: | :--:
+9788936434267 | 소장 | 아몬드(양장) | 창비 | 2017.03.31 | 손원평 | 12000 | 30
+9788996991342 | 소장 | 미움받을 용기 | 인플루엔셜 | 2014.11.17 | 고가 후미타케, 기시미 이치로 | 14900 | 30
+9791165341909 | 소장, 대여 | 달러구트 꿈 백화점 | 팩토리나인 | 2020.07.08 | 이미예 | 13800 | 30, 60
+9791187142560 | 대여 | 데일 카네기 인간관계론 | 현대지성 | 2019.10.07 | 데일 카네기 | 11500 | 50
+9791191056556 | 소장, 대여 | 미드나잇 라이브러리 | 인플루엔셜 | 2021.04.28 | 매트 헤이그 | 15800 | 20, 40
+- 제1정규형    
+모든 속성이 원자 값을 가져야 하므로 여러 개의 값을 가진 구분, 저자, 할인율 속성을 1개의 값만 가지도록 분해한다.    
+
+제1정규형에 속하는 도서 릴레이션 
