@@ -162,7 +162,7 @@ ISBN | INT | N | PK, FK
 # 3. 테이블 생성
 데이터베이스 생성
 ```
-CREATE DATABASE YBook;
+CREATE DATABASE ybook;
 ```
 
 회원 테이블 생성
